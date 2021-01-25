@@ -99,12 +99,23 @@ void drawTemperatureHumidity(float temperature, float humidity) {
     drawImageToSprite(10+(len*24)-10, height_start + 48 - 34,&num18x29[(int)(temperature*100) % 10],&TimePageSprite);
     TimePageSprite.drawString(10+(len*24)-10, height_start - 8, "o", &AsciiFont8x16);     
     TimePageSprite.drawString(10+(len*24)-2, height_start, "C", &AsciiFont8x16);     
+
+    len=sprintf(buff, "%d", (int)humidity);    
+    TimePageSprite.drawString(TimePageSprite.width() - len * 24 - (8 * 2), height_start, buff, &AsciiFont24x48);     
+    TimePageSprite.drawString(TimePageSprite.width() - 8, height_start + 4, "%", &AsciiFont8x16);     
+    TimePageSprite.drawString(TimePageSprite.width() - (8 * 2), height_start + 48 - 20, "RH", &AsciiFont8x16);     
     //sprintf(buff, "%.1f°C", humidity);         
+    last_height=height_start+48;
     
 }
 
 void drawPressure(float atmo_pressure) {
-
+  int height_start = last_height;
+  char buff[50];
+  int len=sprintf(buff, "%d.%d", (int)atmo_pressure, (int)(atmo_pressure * 100) % 100);
+  int xPressure = TimePageSprite.width() / 2 - (len*24) / 2 - 3*8;
+  TimePageSprite.drawString(xPressure, height_start, buff, &AsciiFont24x48);
+  TimePageSprite.drawString(xPressure + len * 24, height_start + 48 - 20, "hPa", &AsciiFont8x16);     
 }
 
             
@@ -135,15 +146,14 @@ void flushTimePage()
             drawTemperatureHumidity(tmp, hum);
             drawPressure(pressure);
             TimePageSprite.pushSprite();
-            minutes = RTCtime.Minutes;
             // Restart esp32 on the next minute
-            
+            M5.rtc.GetTime(&RTCtime);
+            minutes = RTCtime.Minutes;
+            M5.shutdown(60-RTCtime.Seconds);
         }
         delay(1000);
         M5.update();
     }
-    M5.M5Ink.clear();
-    TimePageSprite.clear( CLEAR_DRAWBUFF | CLEAR_LASTBUFF );
 }
 
 void setup() {
