@@ -158,8 +158,8 @@ void flushTimePage()
 
 void setup() {
     M5.begin();
+    
     Wire.begin();
-    uint8_t rtcreg = M5.rtc.ReadReg(0x01);
     
     if( M5.BtnMID.isPressed())
     {
@@ -174,12 +174,8 @@ void setup() {
       Serial.println("Could not find a valid BMP280 sensor, check wiring!");
     }
     
-    // Check timer flag
-    if((rtcreg & 0b00000100) != 0b00000100)
-    {
-        Serial.println("Power on by: power button");
-        M5.M5Ink.clear();
-    }    
+    M5.M5Ink.clear();
+
     //creat ink refresh Sprite
     if( TimePageSprite.creatSprite(0,0,200,200, true) != 0 )
     {
