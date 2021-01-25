@@ -5,6 +5,7 @@
 #include <Adafruit_BMP280.h>
 #include "SHT3X.h"
 #include "esp_adc_cal.h"
+#include "time.h"
 
 SHT3X sht30;
 Adafruit_BMP280 bme;
@@ -89,25 +90,17 @@ void drawDate( RTC_DateTypeDef *date)
     drawImageToSprite(posX,height_start,&num18x29[date->Date  % 10 ],&TimePageSprite);posX += 17;
 }
 
-//
-//void drawTimePage( )
-//{
-//    M5.rtc.GetTime(&RTCtime);
-//    drawTime(&RTCtime);
-//    minutes = RTCtime.Minutes;
-//    M5.rtc.GetDate(&RTCDate);
-//    drawDate(&RTCDate);
-//    TimePageSprite.pushSprite();
-//}
-
 void drawTemperatureHumidity(float temperature, float humidity) {
     int height_start = last_height + 10;
-    drawImageToSprite(10 ,height_start,&num55[((int)temperature/10)],&TimePageSprite);
-    drawImageToSprite(50 ,height_start,&num55[((int)temperature)%10],&TimePageSprite);
+    char buff[50];
+    int len=sprintf(buff, "%d.", (int)temperature);    
+    TimePageSprite.drawString(10, height_start, buff, &AsciiFont24x48);   
+    //TimePageSprite.drawString(10+len-16, height_start + 48 - 16, buff, &AsciiFont8x16);   
+    drawImageToSprite(10+(len*24)-10, height_start + 48 - 34,&num18x29[(int)(temperature*100) % 10],&TimePageSprite);
+    TimePageSprite.drawString(10+(len*24)-10, height_start - 8, "o", &AsciiFont8x16);     
+    TimePageSprite.drawString(10+(len*24)-2, height_start, "C", &AsciiFont8x16);     
+    //sprintf(buff, "%.1f°C", humidity);         
     
-    drawImageToSprite(last_left+2 ,height_start,&num55[((int)humidity/10)],&TimePageSprite);
-    drawImageToSprite(last_left+2 ,height_start,&num55[((int)humidity)%10],&TimePageSprite);
-  
 }
 
 void drawPressure(float atmo_pressure) {
@@ -132,7 +125,7 @@ void flushTimePage()
             M5.rtc.GetTime(&RTCtime);
             M5.rtc.GetDate(&RTCDate);
             
-            if( RTCtime.Minutes % 10 == 0 )
+            if( RTCtime.Minutes % 10 == 0 && millis() > 60000)
             {
                 M5.M5Ink.clear();
                 TimePageSprite.clear( CLEAR_DRAWBUFF | CLEAR_LASTBUFF );                
@@ -144,6 +137,7 @@ void flushTimePage()
             TimePageSprite.pushSprite();
             minutes = RTCtime.Minutes;
             // Restart esp32 on the next minute
+            
         }
         delay(1000);
         M5.update();
@@ -155,6 +149,8 @@ void flushTimePage()
 void setup() {
     M5.begin();
     Wire.begin();
+    uint8_t rtcreg = M5.rtc.ReadReg(0x01);
+    
     if( M5.BtnMID.isPressed())
     {
       setupTime();
@@ -166,9 +162,14 @@ void setup() {
     }
     while (!bme.begin(0x76)){  // GPIO_NUM_32
       Serial.println("Could not find a valid BMP280 sensor, check wiring!");
+    }
+    
+    // Check timer flag
+    if((rtcreg & 0b00000100) != 0b00000100)
+    {
+        Serial.println("Power on by: power button");
+        M5.M5Ink.clear();
     }    
-    M5.M5Ink.clear();
-    delay(1000);
     //creat ink refresh Sprite
     if( TimePageSprite.creatSprite(0,0,200,200, true) != 0 )
     {
