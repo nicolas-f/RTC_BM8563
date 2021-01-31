@@ -152,7 +152,7 @@ void flushTimePage()
             // Restart esp32 on the next minute
             M5.rtc.GetTime(&RTCtime);
             minutes = RTCtime.Minutes;
-            if(RTCtime.Hours > 23) {
+            if(RTCtime.Hours == 23 && RTCtime.Minutes > 50) {
               // wake up 7h morning
               M5.shutdown(RTC_TimeTypeDef(7,0,0));
             } else {
