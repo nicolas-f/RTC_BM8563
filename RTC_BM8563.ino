@@ -112,12 +112,12 @@ void drawTemperatureHumidity(float temperature, float humidity) {
 void drawPressure(float atmo_pressure) {
   int height_start = last_height;
   char buff[50];
-  int len=sprintf(buff, "%d.%d", (int)atmo_pressure, (int)(atmo_pressure * 100) % 100);
+  int len=sprintf(buff, "%d.%02d", (int)atmo_pressure, (int)(atmo_pressure * 100) % 100);
   int xPressure = TimePageSprite.width() / 2 - (len*24) / 2 - 2*8;
   TimePageSprite.drawString(xPressure, height_start, buff, &AsciiFont24x48);
   TimePageSprite.drawString(xPressure + len * 24, height_start + 48 - 20, "hPa", &AsciiFont8x16);     
   float voltage = getBatVoltage();
-  len=sprintf(buff, "%d.%d V", (int)voltage, (int)(voltage * 100) % 100);
+  len=sprintf(buff, "%d.%02d V", (int)voltage, (int)(voltage * 100) % 100);
   TimePageSprite.drawString(5, TimePageSprite.height() - 16, buff, &AsciiFont8x16);
 }
 
@@ -152,7 +152,13 @@ void flushTimePage()
             // Restart esp32 on the next minute
             M5.rtc.GetTime(&RTCtime);
             minutes = RTCtime.Minutes;
-            M5.shutdown(60-RTCtime.Seconds);
+            if(RTCtime.Hours > 23) {
+              // wake up 7h morning
+              M5.shutdown(RTC_TimeTypeDef(7,0,0));
+            } else {
+              // wake up next minute
+              M5.shutdown(60-RTCtime.Seconds);
+            }
         }
         delay(1000);
         M5.update();
@@ -177,8 +183,8 @@ void setup() {
       Serial.println("Could not find a valid BMP280 sensor, check wiring!");
     }
     
-    M5.M5Ink.clear();
-
+    //M5.M5Ink.clear();
+    M5.M5Ink.clear(INK_CLEAR_MODE1); // seems to need use MODE1 after first clear after boot
     //creat ink refresh Sprite
     if( TimePageSprite.creatSprite(0,0,200,200, true) != 0 )
     {
